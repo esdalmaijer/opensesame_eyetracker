@@ -166,10 +166,22 @@ class libsmi:
 #		self.display = display
 #		self.screen = libscreen.Screen()
 		self.outputfile = data_file
-		self.fgc = int(0.299*fg_color[0] + 0.587*fg_color[1] + 0.114*fg_color[2])
-		self.bgc = int(0.299*bg_color[0] + 0.587*bg_color[1] + 0.114*bg_color[2])
-#		self.description = "experiment"
-#		self.participant = "participant"
+		if type(fg_color) != str:
+			bw = int(0.299*fg_color[0] + 0.587*fg_color[1] + 0.114*fg_color[2])
+			self.fgc = (bw, bw, bw)
+			self.calfgc = bw
+		else:
+			self.fgc = fg_color
+			self.calfgc = 255
+		if type(bg_color) != str:
+			bw = int(0.299*bg_color[0] + 0.587*bg_color[1] + 0.114*bg_color[2])
+			self.bgc = (bw, bw, bw)
+			self.calbgc = bw
+		else:
+			self.bgc = bg_color
+			self.calbgc = 0
+		self.description = "OpenSesame_experiment"
+		self.participant = "participant"
 		self.connected = False
 		self.recording = False
 		self.calibrated = False
@@ -179,8 +191,8 @@ class libsmi:
 		self.right_eye = 1
 		self.binocular = 2
 		self.cv = canvas(self.experiment, fgcolor=self.fgc, bgcolor=self.bgc)
-		self.kb = keyboard()
-		self.errorbeep = synth(osc='saw',freq=100, length=100)
+		self.kb = keyboard(self.experiment)
+		self.errorbeep = synth(self.experiment, osc='saw', freq=100, length=100)
 		self.errdist = 2 # degrees
 		self.fixtresh = 1.5 # degrees
 		self.spdtresh = saccade_velocity_threshold # degrees per second; saccade speed threshold
@@ -192,7 +204,7 @@ class libsmi:
 		self.maxtries = 100 # number of samples obtained before giving up (for obtaining accuracy and tracker distance information, as well as starting or stopping recording)
 
 		# set logger
-		res = iViewXAPI.iV_SetLogger(c_int(1), c_char_p(logfile + '_SMILOG.txt'))
+		res = iViewXAPI.iV_SetLogger(c_int(1), c_char_p(data_file + '_SMILOG.txt'))
 		if res != 1:
 			err = errorstring(res)
 			print("Error in libsmi.libsmi.__init__: failed to set logger; %s" % err)
@@ -273,14 +285,14 @@ class libsmi:
 			#self.cv.text("Up/ Down: Adjust threshold", y = yc + 2 * ld)
 			#self.cv.text("Left/ Right: Switch camera view", y = yc + 3 * ld)
 			self.cv.text("calibration: %s" % status[self.calibrated][0], y = yc + 4 * ld, color=status[self.calibrated][1])
-			self.cv.text("validation: %s" % status[self.validated][0], y = yc + 4 * ld, color=status[self.validated][1])
+			self.cv.text("validation: %s" % status[self.validated][0], y = yc + 5 * ld, color=status[self.validated][1])
 			self.cv.show()
 			
 			# flush keyboard
-			kb.get_key(keylist=None, timeout=1)
+			self.kb.get_key(keylist=None, timeout=1)
 	
 			# wait for keypress
-			key, presstime = kb.get_key(keylist=['c','v','q','escape'], timeout=None)
+			key, presstime = self.kb.get_key(keylist=['c','v','q','escape'], timeout=None)
 			
 			# handle input
 			if key == 'escape':
@@ -307,7 +319,7 @@ class libsmi:
 					self.kb.get_key(keylist=None, timeout=1)
 					self.kb.get_key(keylist=None, timeout=None)
 				else:
-					success, error = self.val()
+					success, error = self._val()
 					if success:
 						self.validated = True
 					else:
@@ -322,9 +334,12 @@ class libsmi:
 				quited = True
 
 
-	def cal(self):
+	def _cal(self, target_size):
 		
 		"""Calibrates the eye tracker; for internal use
+
+		arguments
+		target size	--	diameter of calibration target in pixels
 		
 		returns
 		success, error	--	success is a Boolean, indicating if
@@ -336,7 +351,7 @@ class libsmi:
 		# CALIBRATION
 		
 		# configure calibration (NOT starting it)
-		calibrationData = CCalibration(9, 1, 0, 1, 1, self.fgc, self.bgc, 1, target_size, b"") # (method (i.e.: number of points), visualization, display, speed, auto, fg, bg, shape, size, filename)
+		calibrationData = CCalibration(9, 1, 0, 1, 1, self.calfgc, self.calbgc, 1, target_size, b"") # (method (i.e.: number of points), visualization, display, speed, auto, fg, bg, shape, size, filename)
 
 		# setup calibration
 		res = iViewXAPI.iV_SetupCalibration(byref(calibrationData))
@@ -357,13 +372,38 @@ class libsmi:
 			return False, err
 		
 		
+		
+
+		return True, "calibration was successful"
+
+
+	def _val(self):
+
+		"""Validates the calibration; for internal use
+		
+		returns
+		success, error	--	success is a Boolean, indicating if
+						calibration succeeded or not
+						error is a string, describing the error
+		"""
+		
+		res = iViewXAPI.iV_Validate()
+		
+		# handle validation error
+		if res != 1:
+			err = "validation was unsuccesful; " + errorstring(res)
+			print("Error in libsmi.libsmi.calibrate: %s" % err)
+			return False, err
+
 		# # # # #
 		# NOISE CALIBRATION
 
 		# present instructions
+		yc = self.cv.ycenter()
+		ld = 40
 		self.cv.clear()
 		self.cv.text("Noise calibration: please look at the dot", y = yc - 1 * ld)
-		self.cv.text("((press space to start)", y = yc + 1 * ld)
+		self.cv.text("(press space to start)", y = yc + 1 * ld)
 		self.cv.show()
 
 		# wait for spacepress
@@ -376,12 +416,14 @@ class libsmi:
 		self.cv.show()
 
 		# get samples
+		self.start_recording()
 		sl = [self.sample()] # samplelist, prefilled with 1 sample to prevent sl[-1] from producing an error; first sample will be ignored for RMS calculation
 		t0 = self.experiment.time() # starting time
 		while self.experiment.time() - t0 < 1000:
 			s = self.sample() # sample
 			if s != sl[-1] and s != (-1,-1) and s != (0,0):
 				sl.append(s)
+		self.stop_recording()
 
 		# calculate RMS noise
 		Xvar = []
@@ -400,7 +442,7 @@ class libsmi:
 		while res != 1 and i < self.maxtries: # multiple tries, in case no (valid) sample is available
 			res = iViewXAPI.iV_GetAccuracy(byref(accuracyData),0) # 0 is for 'no visualization'
 			i += 1
-			self.experiment.sleep(self.sampletime) # wait for sampletime
+			self.experiment.sleep(int(self.sampletime)) # wait for sampletime
 		if res == 1:
 			self.accuracy = ((accuracyData.deviationLX,accuracyData.deviationLY), (accuracyData.deviationLX,accuracyData.deviationLY)) # dsttresh = (left tuple, right tuple); tuple = (horizontal deviation, vertical deviation) in degrees of visual angle
 		else:
@@ -413,7 +455,7 @@ class libsmi:
 		while res != 1 and i < self.maxtries: # multiple tries, in case no (valid) sample is available
 			res = iViewXAPI.iV_GetSample(byref(sampleData))
 			i += 1
-			self.experiment.sleep(self.sampletime) # wait for sampletime
+			self.experiment.sleep(int(self.sampletime)) # wait for sampletime
 		if res == 1:
 			screendist = sampleData.leftEye.eyePositionZ / 10.0 # eyePositionZ is in mm; screendist is in cm
 		else:
@@ -439,28 +481,7 @@ class libsmi:
 		self.log("accuracy threshold: %s pixels/sample**2" % self.pxacctresh)
 		self.log("pygaze calibration report end")
 
-		return True, "calibration was successful"
-
-
-	def val(self):
-
-		"""Validates the calibration; for internal use
-		
-		returns
-		success, error	--	success is a Boolean, indicating if
-						calibration succeeded or not
-						error is a string, describing the error
-		"""
-		
-		res = iViewXAPI.iV_Validate()
-		
-		# handle validation error
-		if res != 1:
-			err = "validation was unsuccesful; " + errorstring(res)
-			print("Error in libsmi.libsmi.calibrate: %s" % err)
-			return False, err
-		else:
-			return True, "validation was successful"
+		return True, "validation was successful"
 		
 		# TODO:
 		# add feedback for calibration (e.g. with iV_GetAccuracyImage (struct ImageStruct * imageData) for accuracy and iV_GetEyeImage for cool eye pictures)
@@ -581,6 +602,9 @@ class libsmi:
 		if pos == None:
 			pos = self.dispsize[0] / 2, self.dispsize[1] / 2
 
+		# start recording
+		self.start_recording()
+
 		# loop until we have sufficient samples
 		lx = []
 		ly = []
@@ -613,10 +637,12 @@ class libsmi:
 				d = ((avg_x - pos[0]) ** 2 + (avg_y - pos[1]) ** 2)**0.5
 
 				if d < max_dev:
+					self.stop_recording()
 					return True
 				else:
 					lx = []
 					ly = []
+
 
 	def get_eyelink_clock_async(self):
 
@@ -691,19 +717,26 @@ class libsmi:
 		if pos == None:
 			pos = self.dispsize[0] / 2, self.dispsize[1] / 2
 
+		# start recording
+		self.start_recording()
+
+		# drift check
 		checked = False
 		while not checked:
 			pressed, presstime = self.kb.get_key(keylist=['space','q','escape'], timeout=1)
 			if pressed:
 				if pressed == 'escape' or pressed == 'q':
 					print("libsmi.libsmi.drift_correction: 'q' or 'escape' pressed")
+					self.stop_recording()
 					return self.calibrate()
 				gazepos = self.sample()
 				if ((gazepos[0]-pos[0])**2  + (gazepos[1]-pos[1])**2)**0.5 < self.pxerrdist:
 					checked = True
+					self.stop_recording()
 					return True
 				else:
 					self.errorbeep.play()
+		self.stop_recording()
 		return False
 
 

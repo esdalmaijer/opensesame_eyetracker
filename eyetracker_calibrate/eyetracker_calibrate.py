@@ -19,6 +19,7 @@ from PyQt4 import QtGui
 
 from libopensesame import item, debug
 from libqtopensesame import qtplugin
+import imp
 import os.path
 
 class eyetracker_calibrate(item.item):
@@ -106,9 +107,9 @@ class eyetracker_calibrate(item.item):
 			libname = u'libdummy'
 
 		# dynamically load eyetracker library
-		exec(u'path = os.path.join(os.path.dirname(__file__), u"%s".py)' % libname)
+		exec(u'path = os.path.join(os.path.dirname(__file__), u"%s.py")' % libname)
 		exec(u'%s = imp.load_source(u"%s", path)' % (libname, libname))
-		exec(u'eyetracker = u"%s".u"%s"' % (libname,libname))
+		exec(u'eyetracker = %s.%s' % (libname,libname))
 
 		# initialize eyetracker
 		debug.msg(u'loading %s' % libname)

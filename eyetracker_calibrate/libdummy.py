@@ -40,7 +40,7 @@ class libdummy:
 	def connected(self):
 		pass
 		
-	def calibrate(self):
+	def calibrate(self, beep=True, target_size=16):
 		pass
 	
 	def drift_correction(self, pos = None, fix_triggered = False):

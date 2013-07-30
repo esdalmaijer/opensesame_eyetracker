@@ -25,7 +25,7 @@ class libdummytracker:
 
 	"""A dummy class to keep things running if there is no tracker attached."""
 
-	def __init__(self, experiment, resolution, data_file="default.edf", fg_color=(255, 255, 255), bg_color=(0, 0, 0), saccade_velocity_threshold=35, saccade_acceleration_threshold=9500):
+	def __init__(self, experiment, resolution, data_file="default.edf", fg_color=(255, 255, 255), bg_color=(0, 0, 0), saccade_velocity_threshold=35, saccade_acceleration_threshold=9500, force_drift_correct=u'yes'):
 
 		"""Initializes the eyelink dummy object"""
 
