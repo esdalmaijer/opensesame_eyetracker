@@ -107,13 +107,14 @@ class eyetracker_calibrate(item.item):
 			libname = u'libdummy'
 
 		# dynamically load eyetracker library
-		exec(u'path = os.path.join(os.path.dirname(__file__), u"%s.py")' % libname)
-		exec(u'%s = imp.load_source(u"%s", path)' % (libname, libname))
-		exec(u'eyetracker = %s.%s' % (libname,libname))
-
+		path = os.path.join(os.path.dirname(__file__), u'trackers', u'%s.py' \
+			% libname)
+		tracker_module = imp.load_source(libname, path)
+		tracker_class = getattr(tracker_module, libname)
+		
 		# initialize eyetracker
 		debug.msg(u'loading %s' % libname)
-		self.experiment.eyetracker = eyetracker(
+		self.experiment.eyetracker = tracker_class(
 			self.experiment, \
 			(self.get(u'width'), self.get(u'height')), \
 			data_file=data_file, \
