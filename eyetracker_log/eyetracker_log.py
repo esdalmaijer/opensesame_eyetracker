@@ -42,7 +42,7 @@ class eyetracker_log(item.item):
 		self.auto_log = 'no'
 		self.throttle = 2
 		self.description = \
-			"Message log for the eyetracker series of eye trackers (SR-Research)"
+			"Message log for the eye tracker (part of the eyetracker plug-ins)"
 		item.item.__init__(self, name, experiment, string)
 
 	def prepare(self):

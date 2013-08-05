@@ -42,7 +42,7 @@ class eyetracker_start_recording(item.item):
 		self.ypos = 0
 		
 		# Provide a short accurate description of the items functionality
-		self.description = "Start recording plugin for the eyetracker series of eye trackers (SR-Research)"
+		self.description = "Start eye-tracker recording (part of the eyetracker plug-ins)"
 
 		# The parent handles the rest of the contruction
 		item.item.__init__(self, name, experiment, string)

@@ -47,7 +47,7 @@ class eyetracker_drift_correct(item.item):
 		self.ypos = 0
 
 		# Provide a short accurate description of the items functionality
-		self.description = "Drift correction plugin for the eye trackers"
+		self.description = "Drift correction plugin (part of the eyetracker plug-ins)"
 
 		# The parent handles the rest of the contruction
 		item.item.__init__(self, name, experiment, string)

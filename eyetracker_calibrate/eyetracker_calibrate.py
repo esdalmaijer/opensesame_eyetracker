@@ -45,7 +45,7 @@ class eyetracker_calibrate(item.item):
 		self.version = 0.01
 		self.item_type = u'eyetracker_calibrate'
 		self.description = \
-			u'Calibration/ initialization plugin for an eye tracker'
+			u'Calibration/ initialization plugin for an eye tracker (part of the eyetracker plug-ins)'
 		# default values
 		self._text_eyelink = u'EyeLink'
 		self._text_smi = u'SMI'

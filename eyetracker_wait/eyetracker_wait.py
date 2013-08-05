@@ -47,7 +47,7 @@ class eyetracker_wait(item.item):
 		self.event = self._ssacc
 		
 		# Provide a short accurate description of the items functionality
-		self.description = "Wait for event plugin for the eyetracker series of eye trackers (SR-Research)"
+		self.description = "Wait for event (part of the eyetracker plug-ins)"
 
 		# The parent handles the rest of the contruction
 		item.item.__init__(self, name, experiment, string)
